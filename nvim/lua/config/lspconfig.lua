@@ -76,7 +76,7 @@ require('lspconfig').pyright.setup({
 require('lspconfig').clangd.setup({
     on_attach = lsp_on_attach,
     cmd = {
-        '/usr/local/opt/llvm/bin/clangd',
+        'clangd',
         '--header-insertion=never',
         '--completion-style=detailed',
         '--pretty',
