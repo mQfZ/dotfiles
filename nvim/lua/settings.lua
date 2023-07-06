@@ -44,6 +44,11 @@ vim.opt.termguicolors = true
 vim.opt.exrc = true
 
 
+vim.keymap.set('n', '=', [[<cmd>vertical resize +5<cr>]])
+vim.keymap.set('n', '-', [[<cmd>vertical resize -5<cr>]])
+vim.keymap.set('n', '+', [[<cmd>horizontal resize +2<cr>]])
+vim.keymap.set('n', '_', [[<cmd>horizontal resize -2<cr>]])
+
 vim.keymap.set('n', '<leader>1', [[<cmd>w<CR>]], { noremap = true })
 
 function table_length(T)
