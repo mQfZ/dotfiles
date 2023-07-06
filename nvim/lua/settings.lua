@@ -70,7 +70,7 @@ vim.keymap.set('n', '<leader>4', function()
     vim.cmd('bn | bd#')
 end, { noremap = true })
 
-vim.keymap.set('n', '<leader>%', function()
+vim.keymap.set('n', '<leader>@', function()
     local current_buffer = vim.api.nvim_get_current_buf()
     local is_modified = vim.api.nvim_buf_get_option(current_buffer, 'modified')
     if is_modified then
