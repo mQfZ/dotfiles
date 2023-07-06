@@ -5,7 +5,6 @@ return require('packer').startup(function()
     use 'nvim-treesitter/nvim-treesitter'
 
     use 'ray-x/lsp_signature.nvim'
-    use 'simrat39/symbols-outline.nvim'
     
     use {
         'kyazdani42/nvim-tree.lua',
@@ -14,10 +13,6 @@ return require('packer').startup(function()
     use {
         'nvim-lualine/lualine.nvim',
         requires = { 'kyazdani42/nvim-web-devicons', opt = false }
-    }
-    use {
-        'akinsho/toggleterm.nvim',
-        tag = '*'
     }
 
     use 'windwp/nvim-autopairs'
