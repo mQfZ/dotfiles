@@ -97,12 +97,6 @@ vim.keymap.set('t', '<C-w><up>', [[<C-\><C-N><C-w><up>]], { noremap = true })
 vim.keymap.set('t', '<C-w><right>', [[<C-\><C-N><C-w><right>]], { noremap = true })
 vim.keymap.set('t', '<C-w><down>', [[<C-\><C-N><C-w><down>]], { noremap = true })
 
-vim.api.nvim_create_autocmd({ 'VimLeave' }, {
-    callback = function()
-        vim.opt.guicursor = 'a:ver20-blinkon500-blinkoff500'
-    end
-})
-
 vim.api.nvim_create_autocmd({ 'BufLeave', 'FocusLost' }, {
     callback = function()
         vim.cmd('silent! wall')

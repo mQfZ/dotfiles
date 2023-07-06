@@ -12,3 +12,8 @@ brew install python3
 
 ## Zsh
 
+
+## Tmux
+```
+brew install tmux
+```
