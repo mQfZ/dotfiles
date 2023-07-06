@@ -1,4 +1,5 @@
 zsh/.zsh_sessions
 git/config
 nvim/plugin
+zsh/plugin
 .DS_Store
