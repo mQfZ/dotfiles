@@ -231,6 +231,7 @@ require('lspconfig').clangd.setup({
         '--header-insertion=never',
         '--completion-style=detailed',
         '--pretty',
+        '--background-index',
     },
     flags = {
         debounce_text_changes = 0,
