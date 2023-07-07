@@ -1,5 +1,3 @@
-autoload -U colors && colors
-
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_DATA_HOME="$HOME/.local/share"
@@ -9,6 +7,8 @@ export HISTFILE="$XDG_STATE_HOME/zsh/history"
 export LESSHISTFILE="$XDG_STATE_HOME/less/history"
 
 export PYTHONSTARTUP="$XDG_CONFIG_HOME/python/pythonrc.py"
+
+autoload -U colors && colors
 
 alias ls="ls --color=always"
 alias lsa="ls -a --color=always"
@@ -54,7 +54,7 @@ session.competitive-programming() {
 }
 
 session.dotfiles() {
-    SESSIONNAME="dotfiles"
+    SESSIONNAME="dotfiles-config"
     tmux has-session -t $SESSIONNAME &> /dev/null
 
     if [ $? != 0 ]; then
