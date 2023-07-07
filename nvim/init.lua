@@ -534,7 +534,7 @@ require('telescope').setup {
 }
 
 vim.keymap.set('n', '<leader>tt', [[<cmd>Telescope<CR>]], { noremap = true })
-vim.keymap.set('n', '<leader>tb', [[<cmd>Telescope buffers<CR>]], { noremap = true })
+vim.keymap.set('n', '<leader>b', [[<cmd>Telescope buffers<CR>]], { noremap = true })
 vim.keymap.set('n', '<leader>tg', [[<cmd>Telescope live_grep<CR>]], { noremap = true })
 vim.keymap.set('n', '<leader>tk', [[<cmd>Telescope keymaps<CR>]], { noremap = true })
 
