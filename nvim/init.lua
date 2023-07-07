@@ -265,8 +265,30 @@ local function on_attach(bufnr)
         return { desc = 'nvim-tree: ' .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
     end
 
+    function nvim_tree_trash()
+        local lib = require('nvim-tree.lib')
+        local node = lib.get_node_at_cursor()
+        local trash_cmd = 'trash '
+        
+        local function get_user_input_char()
+            local c = vim.fn.getchar()
+            return vim.fn.nr2char(c)
+        end
+        
+        print('Trash ' .. node.name .. '? y/N')
+        
+        if (get_user_input_char():match('^y') and node) then
+            vim.fn.jobstart(trash_cmd .. node.absolute_path, {
+                detach = true,
+            })
+        end
+        
+        vim.api.nvim_command('normal :esc<CR>')
+	end
+
     api.config.mappings.default_on_attach(bufnr)
     vim.keymap.del('n', 'd', { buffer = bufnr })
+    vim.keymap.set('n', 'd', nvim_tree_trash, opts('Trash'))
 end
 
 require('nvim-tree').setup({
