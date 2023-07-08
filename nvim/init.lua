@@ -10,20 +10,20 @@ require('packer').startup(function()
 
     use { 'kyazdani42/nvim-tree.lua', requires = 'kyazdani42/nvim-web-devicons' }
     use { 'nvim-lualine/lualine.nvim', requires = 'kyazdani42/nvim-web-devicons' }
+    use { 'akinsho/bufferline.nvim', requires = 'nvim-tree/nvim-web-devicons' }
+    use { 'nvim-telescope/telescope.nvim', requires = 'nvim-lua/plenary.nvim' }
 
     use 'windwp/nvim-autopairs'
     use { 'kevinhwang91/nvim-ufo', requires = 'kevinhwang91/promise-async' }
     use 'preservim/nerdcommenter'
     
+    use 'L3MON4D3/LuaSnip'
+    use 'saadparwaiz1/cmp_luasnip'
+
     use 'hrsh7th/cmp-cmdline'
     use 'hrsh7th/cmp-nvim-lsp'
     use 'hrsh7th/cmp-nvim-lsp-signature-help'
     use 'hrsh7th/nvim-cmp'
-
-    use 'L3MON4D3/LuaSnip'
-    use 'saadparwaiz1/cmp_luasnip'
-
-    use { 'nvim-telescope/telescope.nvim', requires = 'nvim-lua/plenary.nvim' }
 
     use 'morhetz/gruvbox'
     use 'joshdick/onedark.vim'
@@ -98,12 +98,6 @@ vim.keymap.set('t', '<C-w><up>', [[<C-\><C-N><C-w><up>]], { noremap = true })
 vim.keymap.set('t', '<C-w><right>', [[<C-\><C-N><C-w><right>]], { noremap = true })
 vim.keymap.set('t', '<C-w><down>', [[<C-\><C-N><C-w><down>]], { noremap = true })
 
-function table_length(T)
-    local count = 0
-    for _ in pairs(T) do count = count + 1 end
-    return count
-end
-
 vim.keymap.set('n', '<leader>1', [[<cmd>w<CR>]], { noremap = true })
 
 vim.keymap.set('n', '<leader>@', function()
@@ -113,19 +107,6 @@ vim.keymap.set('n', '<leader>@', function()
         error('Cannot quit modified buffer!')
     end
     vim.cmd('q')
-end, { noremap = true })
-
-vim.keymap.set('n', '<leader>4', function()
-    local buffers_left = table_length(vim.fn.getbufinfo({ buflisted = 1 }))
-    local current_buffer = vim.api.nvim_get_current_buf()
-    local is_modified = vim.api.nvim_buf_get_option(current_buffer, 'modified')
-    if is_modified then
-        error('Cannot delete modified buffer!')
-    end
-    if buffers_left == 1 then
-        vim.api.nvim_create_buf(true, true)
-    end
-    vim.cmd('bn | bd#')
 end, { noremap = true })
 
 vim.api.nvim_create_autocmd({ 'BufEnter', 'BufNew' }, {
@@ -186,7 +167,7 @@ local capabilities = require('cmp_nvim_lsp').default_capabilities(
     vim.lsp.protocol.make_client_capabilities()
 )
 
-capabilities.textDocument.completion.completionItem.snippetSupport = false
+capabilities.textDocument.completion.completionItem.snippetSupport = true
 capabilities.textDocument.completion.completionItem.resolveSupport = {
     properties = { 'documentation', 'detail', 'additionalTextEdits' },
 }
@@ -275,7 +256,7 @@ local function on_attach(bufnr)
             return vim.fn.nr2char(c)
         end
         
-        print('Trash ' .. node.name .. '? y/N')
+        print('Trash ' .. node.name .. '? [y/N] ')
         
         if (get_user_input_char():match('^y') and node) then
             vim.fn.jobstart(trash_cmd .. node.absolute_path, {
@@ -370,6 +351,102 @@ require('lualine').setup {
     }
 }
 
+--------------------
+---- Bufferline ----
+--------------------
+
+local bufferline = require('bufferline')
+bufferline.setup {
+    options = {
+        diagnostics = 'nvim_lsp',
+        offsets = {
+            {
+                filetype = 'NvimTree',
+                text = 'Files',
+                text_align = 'center',
+                separator = true
+            },
+        },
+        move_wraps_at_ends = false,
+    },
+}
+
+vim.keymap.set('n', '<leader>]', [[<cmd>BufferLineCycleNext<CR>]], { silent = true, noremap = true })
+vim.keymap.set('n', '<leader>[', [[<cmd>BufferLineCyclePrev<CR>]], { silent = true, noremap = true })
+
+vim.keymap.set('n', '<leader>}', [[<cmd>BufferLineMoveNext<CR>]], { silent = true, noremap = true })
+vim.keymap.set('n', '<leader>{', [[<cmd>BufferLineMovePrev<CR>]], { silent = true, noremap = true })
+
+vim.keymap.set('n', '<leader>bs', [[<cmd>BufferLineSortByDirectory<CR>]], { silent = true, noremap = true })
+
+function cycle(direction)
+    if vim.opt.showtabline == 0 then
+        if direction > 0 then vim.cmd('bpnext') end
+        if direction < 0 then vim.cmd('bprev') end
+    end
+
+    local commands = require('bufferline.commands')
+    local config = require('bufferline.config')
+    local state = require('bufferline.state')
+    
+    local index = commands.get_current_element_index(state)
+    
+    if not index then return end
+    local length = #state.components
+    local next_index = index + direction
+
+    if next_index <= length and next_index >= 1 then
+        next_index = index + direction
+    else
+        return false
+    end
+
+    local item = state.components[next_index]
+    if not item then return utils.notify(fmt('This %s does not exist', item.type), 'error') end
+    if config:is_tabline() and vim.api.nvim_tabpage_is_valid(item.id) then
+        vim.api.nvim_set_current_tabpage(item.id)
+    elseif vim.api.nvim_buf_is_valid(item.id) then
+        vim.api.nvim_set_current_buf(item.id)
+    end
+    return true
+end
+
+vim.keymap.set('n', '<leader>4', function()
+    local buffers_left = #vim.fn.getbufinfo({ buflisted = 1 })
+    local current_buffer = vim.api.nvim_get_current_buf()
+    local is_modified = vim.api.nvim_buf_get_option(current_buffer, 'modified')
+    if is_modified then
+        error('Cannot delete modified buffer!')
+    end
+    if buffers_left <= 1 then
+        vim.api.nvim_create_buf(true, true)
+    end
+    if not cycle(1) then
+        if not cycle(-1) then
+            vim.cmd('bn')
+        end
+    end
+    vim.cmd('bd#')
+end, { noremap = true })
+
+
+-------------------
+---- Telescope ----
+-------------------
+
+require('telescope').setup {
+
+}
+
+vim.keymap.set('n', '<leader>tt', [[<cmd>Telescope<CR>]], { noremap = true })
+vim.keymap.set('n', '<leader>bb', [[<cmd>Telescope buffers<CR>]], { noremap = true })
+vim.keymap.set('n', '<leader>tg', [[<cmd>Telescope live_grep<CR>]], { noremap = true })
+vim.keymap.set('n', '<leader>tk', [[<cmd>Telescope keymaps<CR>]], { noremap = true })
+
+tt = require('ext.telescope-tasks')
+vim.keymap.set('n', '<leader>p', [[<cmd>TaskPrevious<CR>]], { noremap = true })
+vim.keymap.set('n', '<leader>o', [[<cmd>TaskRun<CR>]], { noremap = true })
+
 
 ------------------------
 ---- Nvim Autopairs ----
@@ -401,6 +478,20 @@ vim.keymap.set('n', 'zM', ufo.closeAllFolds)
 vim.g.NERDCreateDefaultMappings = 0
 vim.g.NERDSpaceDelims = 1
 vim.keymap.set('n', '<leader>c', [[<Plug>NERDCommenterToggle]], { noremap = true })
+
+
+-----------------
+---- Luasnip ----
+-----------------
+
+-- NOTE: Other config is also in nvim cmp
+
+local luasnip = require('luasnip')
+
+luasnip.setup {
+    region_check_events = 'CursorHold,InsertLeave,InsertEnter',
+    delete_check_events = 'TextChanged,InsertEnter',
+}
 
 
 ------------------
@@ -436,7 +527,6 @@ local cmp_kinds = {
 }
 
 local cmp = require('cmp')
-local luasnip = require('luasnip')
 
 local ELLIPSIS_CHAR = '…'
 local MAX_ABBR_WIDTH = 25
@@ -450,20 +540,34 @@ cmp.setup({
     enabled = true,
     snippet = {
         expand = function(args)
-            require('luasnip').lsp_expand(args.body)
+            luasnip.lsp_expand(args.body)
         end,
     },
     window = {
-        completion = cmp.config.window.bordered(),
-        documentation = cmp.config.window.bordered(),
+        -- completion = cmp.config.window.bordered(),
+        -- documentation = cmp.config.window.bordered(),
     },
     mapping = {
         ['<C-b>'] = cmp.mapping.scroll_docs(-4),
         ['<C-f>'] = cmp.mapping.scroll_docs(4),
-        ['<tab>'] = cmp.mapping(cmp.mapping.select_next_item(), { 'i', 'c' }),
-        ['<S-tab>'] = cmp.mapping(cmp.mapping.select_prev_item(), { 'i', 'c' }),
-        ['<down>'] = cmp.mapping(cmp.mapping.select_next_item(), { 'i', 'c' }),
-        ['<up>'] = cmp.mapping(cmp.mapping.select_prev_item(), { 'i', 'c' }),
+        ['<Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+                cmp.select_next_item()
+            elseif luasnip.expand_or_jumpable() then
+                luasnip.expand_or_jump()
+            else
+                fallback()
+            end
+        end, { 'i', 's' }),
+        ['<S-Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+                cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+                luasnip.jump(-1)
+            else
+                fallback()
+            end
+        end, { 'i', 's' }),
         ['<C-e>'] = cmp.mapping({
             i = cmp.mapping.abort(),
             c = cmp.mapping.close(),
@@ -517,8 +621,15 @@ cmp.setup({
         }
     )
 })
+cmp.setup.cmdline('/', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = {
+        { name = 'buffer' },
+    },
+})
 
 cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
     sources = cmp.config.sources({
         { name = 'path' }
     }, {
@@ -537,35 +648,6 @@ vim.keymap.set({ 'n', 'i' }, '<C-t>',
     { noremap = true, silent = true })
 
 
------------------
----- Luasnip ----
------------------
-
-vim.cmd[[
-imap <silent><expr> <Tab> luasnip#expand_or_jumpable() ? '<Plug>luasnip-expand-or-jump' : '<Tab>' 
-inoremap <silent> <S-Tab> <cmd>lua require'luasnip'.jump(-1)<CR>
-snoremap <silent> <Tab> <cmd>lua require('luasnip').jump(1)<CR>
-snoremap <silent> <S-Tab> <cmd>lua require('luasnip').jump(-1)<CR>
-]]
-
--------------------
----- Telescope ----
--------------------
-
-require('telescope').setup {
-
-}
-
-vim.keymap.set('n', '<leader>tt', [[<cmd>Telescope<CR>]], { noremap = true })
-vim.keymap.set('n', '<leader>b', [[<cmd>Telescope buffers<CR>]], { noremap = true })
-vim.keymap.set('n', '<leader>tg', [[<cmd>Telescope live_grep<CR>]], { noremap = true })
-vim.keymap.set('n', '<leader>tk', [[<cmd>Telescope keymaps<CR>]], { noremap = true })
-
-tt = require('ext.telescope-tasks')
-vim.keymap.set('n', '<leader>p', [[<cmd>TaskPrevious<CR>]], { noremap = true })
-vim.keymap.set('n', '<leader>o', [[<cmd>TaskRun<CR>]], { noremap = true })
-
-
 ---------------------
 ---- Colorscheme ----
 ---------------------
@@ -575,8 +657,6 @@ local transparent_bg_group = vim.api.nvim_create_augroup('transparentBackground'
 vim.api.nvim_create_autocmd('ColorScheme', {
     callback = function() 
         vim.api.nvim_set_hl(0, 'Normal', { bg = 'NONE', ctermbg = 'NONE' })
-        vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'NONE', ctermbg = 'NONE' })
-        vim.api.nvim_set_hl(0, 'FloatBorder', { bg = 'NONE', ctermbg = 'NONE' })
         vim.api.nvim_set_hl(0, 'NonText', { ctermbg = 'NONE' })
         vim.api.nvim_set_hl(0, 'SignColumn', { bg = 'NONE', ctermbg = 'NONE' })
     end,
@@ -592,6 +672,15 @@ vim.api.nvim_create_autocmd('ColorScheme', {
 
 vim.api.nvim_create_autocmd('ColorScheme', {
     callback = function()
+        vim.api.nvim_set_hl(0, 'SignColumn', { bg = 'NONE', ctermbg = 'NONE' })
+    end,
+    group = transparent_bg_group,
+})
+
+vim.api.nvim_create_autocmd('ColorScheme', {
+    callback = function() 
+        vim.api.nvim_set_hl(0, 'Normal', { bg = 'NONE', ctermbg = 'NONE' })
+        vim.api.nvim_set_hl(0, 'NonText', { ctermbg = 'NONE' })
         vim.api.nvim_set_hl(0, 'SignColumn', { bg = 'NONE', ctermbg = 'NONE' })
     end,
     group = transparent_bg_group,
@@ -614,6 +703,12 @@ vim.api.nvim_create_autocmd('ColorScheme', {
         vim.api.nvim_set_hl(0, 'CmpItemKindUnit', { link = 'Keyword' })
     end,
     group = hl_override_group,
+})
+
+vim.api.nvim_create_autocmd('ColorScheme', {
+    callback = function()
+        vim.api.nvim_set_hl(0, 'BufferLineFill', { bg = 'NONE' })
+    end
 })
 
 vim.cmd.colorscheme('gruvbox')
