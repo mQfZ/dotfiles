@@ -162,9 +162,7 @@ vim.lsp.handlers['textDocument/publishDiagnostics'] = vim.lsp.with(
     }
 )
 
-local capabilities = require('cmp_nvim_lsp').default_capabilities(
-    vim.lsp.protocol.make_client_capabilities()
-)
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
 capabilities.textDocument.completion.completionItem.snippetSupport = true
 capabilities.textDocument.completion.completionItem.resolveSupport = {
@@ -523,6 +521,7 @@ local cmp_kinds = {
 }
 
 local cmp = require('cmp')
+local cmp_enabled = false
 
 local ELLIPSIS_CHAR = '…'
 local MAX_ABBR_WIDTH = 25
@@ -533,7 +532,7 @@ local MAX_MENU_WIDTH = 15
 local MIN_MENU_WIDTH = 15
 
 cmp.setup({
-    enabled = true,
+    enabled = cmp_enabled,
     snippet = {
         expand = function(args)
             luasnip.lsp_expand(args.body)
@@ -547,7 +546,7 @@ cmp.setup({
         ['<C-b>'] = cmp.mapping.scroll_docs(-4),
         ['<C-f>'] = cmp.mapping.scroll_docs(4),
         ['<Tab>'] = cmp.mapping(function(fallback)
-            if cmp.core.view:visible() or vim.fn.pumvisible() == 1 then
+            if cmp.visible() then
                 cmp.select_next_item()
             elseif luasnip.expand_or_jumpable() then
                 luasnip.expand_or_jump()
@@ -556,7 +555,7 @@ cmp.setup({
             end
         end, { 'i', 's' }),
         ['<S-Tab>'] = cmp.mapping(function(fallback)
-            if cmp.core.view:visible() or vim.fn.pumvisible() == 1 then
+            if cmp.visible() then
                 cmp.select_prev_item()
             elseif luasnip.jumpable(-1) then
                 luasnip.jump(-1)
@@ -564,10 +563,8 @@ cmp.setup({
                 fallback()
             end
         end, { 'i', 's' }),
-        ['<C-e>'] = cmp.mapping({
-            i = cmp.mapping.abort(),
-            c = cmp.mapping.close(),
-        }),
+        ['<C-e>'] = cmp.mapping.abort(),
+        ['<C-Space>'] = cmp.mapping.complete(),
         ['<CR>'] = cmp.mapping.confirm({ select = false }),
     },
     formatting = {
@@ -577,7 +574,7 @@ cmp.setup({
             local abbr = vim_item.abbr
             local truncated_abbr = vim.fn.strcharpart(abbr, 0, MAX_ABBR_WIDTH)
             if truncated_abbr ~= abbr then
-                vim_item.abbr = truncated_abbr .. ELLIPSIS_CHAR
+                    vim_item.abbr = truncated_abbr .. ELLIPSIS_CHAR
             elseif string.len(abbr) < MIN_ABBR_WIDTH then
                 local padding = string.rep(' ', MIN_ABBR_WIDTH - string.len(abbr))
                 vim_item.abbr = abbr .. padding
@@ -606,13 +603,12 @@ cmp.setup({
     },
     sources = cmp.config.sources(
         {
-            { name = 'nvim_lsp' },
-            { name = 'luasnip' },
-            -- { name = 'buffer' },
-            -- { name = 'nvim_lsp_signature_help' },
+            { name = 'nvim_lsp', keyword_length = 3 },
+            { name = 'luasnip', keyword_length = 3 },
         }
     )
 })
+
 cmp.setup.cmdline('/', {
     mapping = cmp.mapping.preset.cmdline(),
     sources = {
@@ -629,10 +625,11 @@ cmp.setup.cmdline(':', {
     })
 })
 
-local cmp_enabled = true
 vim.api.nvim_create_user_command('CmpToggleBufferAutoComplete', function()
     cmp_enabled = not cmp_enabled
-    cmp.setup.buffer({ enabled = cmp_enabled })
+    cmp.setup.buffer({
+        enabled = cmp_enabled,
+    })
 end, {})
 
 vim.keymap.set({ 'n', 'i' }, '<C-t>',
