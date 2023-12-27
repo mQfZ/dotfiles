@@ -2,6 +2,10 @@
 ---- Packer ----
 ----------------
 
+if vim.g.vscode then
+    return require('vscode-init')
+end
+
 require('packer').startup(function()
     use 'wbthomason/packer.nvim'
     
