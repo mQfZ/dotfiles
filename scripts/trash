@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+import datetime
+import os
+import sys
+
+LOCAL_HOME = os.environ.get("LOCAL_HOME")
+TRASH_PATH = os.path.expanduser(f"{LOCAL_HOME}/trash")
+
+if len(sys.argv) > 1:
+    paths = []
+    for arg in sys.argv[1:]:
+        if os.path.exists(arg):
+            paths.append(arg)
+        else:
+            sys.stderr.write("%s: %s: No such file or directory\n" % (sys.argv[0], arg))
+    for path in paths:
+        trash_path = os.path.join(TRASH_PATH, os.path.basename(os.path.normpath(path)))
+        if os.path.exists(trash_path):
+            time_str = datetime.datetime.now().strftime("%Y-%m-%d %I-%M-%S %p")
+            name_with_time = os.path.basename(trash_path) + " " + time_str
+            trash_path = os.path.join(os.path.dirname(trash_path), name_with_time)
+        os.rename(path, trash_path)
+else:
+    sys.stderr.write(
+        "usage: %s file(s)\n"
+        "       move file(s) to Trash\n" % os.path.basename(sys.argv[0])
+    )
+    sys.exit(64)
